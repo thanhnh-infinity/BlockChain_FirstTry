@@ -78,4 +78,114 @@ public class Transaction {
 		return StringUtil.verifyECDSASig(sender, data, signature);
 	}
 
+	//returns sum of inputs((UTXOs) values
+	public float getInputsValue(){
+		float total = 0;
+		for(TransactionInput i : inputs){
+			if (i.UTXO == null) continue;
+			total += i.UTXO.value;
+		}
+		return total;
+	}
+	
+	//returns sum of outputs
+	public float getOutputsValue(){
+		float total = 0;
+		for(TransactionOutput o : outputs){
+			total += o.value;
+		}
+		return total;
+	}
+	
+	//Let put everything together to process the transaction with a processTransaction boolean method
+	/**
+	 * 
+	 * In this method, we perform some checks to ensure that the transaction is valid,
+	 * then, gather inputs and generating outputs
+	 * 
+	 * IMPORTANT : towards the end, we discard Inputs from our list of UTXO's meaning a transaction output can only be used as an input.. Hence the full value of the inputs must be used, 
+	 * so the sender sends 'change' back to themselves
+	 * 
+	 */
+	public boolean processTransaction(){
+		if (!verifiySignature()){
+			System.out.println("#Transaction Signature Failed to verify !");
+			return false;
+		}
+		
+		//Gather transaction inputs (make sure thay are unspent)
+		for(TransactionInput i : inputs){
+			i.UTXO = NoobChain.UTXOs.get(i.transactionOutputId);
+		}
+		
+		//Check if transaction is valid:
+		if (getInputsValue() < NoobChain.minimumTransaction){
+			System.out.println("#Transaction Inputs too small : " + getInputsValue());
+			return false;
+		}
+		
+		//generate transaction outputs:
+		float leftOver = getInputsValue() - value; //get value of inputs then the left over changed
+		this.transactionID = calculateHash();
+		outputs.add(new TransactionOutput(this.reciepient, value, transactionID)); //send value to recipient
+		outputs.add(new TransactionOutput(this.sender, leftOver, transactionID)); // send the left over 'change' back to sender
+		
+		
+		//add output to Unspent list
+		for(TransactionOutput o : outputs){
+			NoobChain.UTXOs.put(o.id, o);
+		}
+		
+		//remove transaction inputs from UTXO lists as spent:
+		for(TransactionInput i : inputs){
+			if (i.UTXO == null) continue; 
+			NoobChain.UTXOs.remove(i.UTXO.id);
+		}
+		
+		return true;
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

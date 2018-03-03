@@ -1,5 +1,6 @@
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.google.gson.GsonBuilder;
 
@@ -16,13 +17,23 @@ import com.google.gson.GsonBuilder;
  *  What does it mean ? Changing any data in this list, will change the signature of all blocks and break the chain 
  */
 
+/**
+ * Blocks in the chain may receive many transactions and the block-chain might be very long, it could take eons to process a new transaction because we have to find and 
+ * check its inputs. 
+ *
+ */
+
 public class NoobChain {
 
 	public static ArrayList<Block> blockchain = new ArrayList<Block>();
+	
+	public static HashMap<String,TransactionOutput> UTXOs = new HashMap<String,TransactionOutput>();
+	public static float minimumTransaction = 0.1f;
 	public static int difficulty = 5;
 	public static Wallet walletA;
 	public static Wallet walletB;
 	public static Wallet walletC;
+	
 
 	public static void playArround() {
 		// Block genesisBlock = new Block("Hi, I am the first Block - Genesis
