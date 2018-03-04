@@ -180,6 +180,8 @@ public class NoobChain {
 		System.out.println("\nWalletA's balance is: " + walletA.getBalance());
 		System.out.println("WalletB's balance is: " + walletB.getBalance());
 		addBlock(block3);
+		
+		isChainValid();
 	}
 
 	// Create an isChainValid() Boolean method that will loop through all blocks
@@ -192,13 +194,19 @@ public class NoobChain {
 		Block currentBlock;
 		Block previousBlock;
 		String hashTarget = new String(new char[difficulty]).replace('\0', '0');
+		
+		//a temporary working list of unspent transactions at a given block state
+		HashMap<String,TransactionOutput> tempUTXOs = new HashMap<String,TransactionOutput>();
+		tempUTXOs.put(genesisTransaction.outputs.get(0).id, genesisTransaction.outputs.get(0));
 
+		
+		//loop through blockchain to check hashes
 		for (int i = 1; i < blockchain.size(); i++) {
 			currentBlock = blockchain.get(i);
 			previousBlock = blockchain.get(i - 1);
 
 			// Compare registered hash and calculated hash
-			if (!currentBlock.hash.equals(currentBlock.calculateHash())) {
+			if (!currentBlock.hash.equals(currentBlock.newCalculateHash())) {
 				System.out.println("Current Hashes Not Equal");
 				return false;
 			}
@@ -214,7 +222,54 @@ public class NoobChain {
 				System.out.println("This block hasn't been mined");
 				return false;
 			}
+			
+			//loop throught block chains transactions
+			TransactionOutput tempOutput;
+			for(int t = 0 ; t < currentBlock.transactions.size() ; t++) {
+				Transaction currentTransaction = currentBlock.transactions.get(t);
+				
+				if (!currentTransaction.verifiySignature()) {
+					System.out.println("#Signature on Transaction(" + t + ") is IN-valid");
+					return false;
+				}
+				if (currentTransaction.getInputsValue() != currentTransaction.getOutputsValue()) {
+					System.out.println("#Inputs are not equal to outputs on Transaction(" + t + ")");
+					return false;
+				}
+				
+				for(TransactionInput input : currentTransaction.inputs) {
+					tempOutput = tempUTXOs.get(input.transactionOutputId);
+					
+					if (tempOutput == null) {
+						System.out.println("#Referenced input on Transaction(" + t + ") is Missing");
+						return false;
+					}
+					
+					if (input.UTXO.value != tempOutput.value) {
+						System.out.println("#Referenced input Transaction(" + t + ") value is IN-valid");
+						return false;
+					}
+					tempUTXOs.remove(input.transactionOutputId);
+				}
+				
+				for(TransactionOutput output : currentTransaction.outputs) {
+					tempUTXOs.put(output.id,output);
+				}
+				
+				if (currentTransaction.outputs.get(0).reciepient != currentTransaction.reciepient) {
+					System.out.println("#Transaction(" + t + ") output reciepient is not who it should be");
+					return false;
+				}
+				
+				if (currentTransaction.outputs.get(1).reciepient != currentTransaction.sender) {
+					System.out.println("#Transaction(" + t + ") output 'change' is not sender.");
+					return false;
+				}
+				
+				
+			}
 		}
+		System.out.println("Block Chain is VALID");
 		return true;
 	}
 	
